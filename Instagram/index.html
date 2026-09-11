@@ -115,4 +115,32 @@ share=async function(id){
   }
 };
 
+</script><script>
+/* studygram-story-menu-v1 */
+
+(function(){
+  if(document.getElementById('storyMore')) return;
+
+  const style=document.createElement('style');
+  style.textContent='.story-more{border:0;background:none;color:#fff;font-size:22px;line-height:1;padding:0 5px;cursor:pointer;letter-spacing:1px;min-width:30px}.story-more:focus-visible{outline:2px solid #fff;outline-offset:2px}';
+  document.head.appendChild(style);
+
+  const btn=document.createElement('button');
+  btn.id='storyMore';
+  btn.className='story-more';
+  btn.type='button';
+  btn.setAttribute('aria-label','Mais opções deste story');
+  btn.textContent='•••';
+  btn.onclick=e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    const c=storyItems[storyIndex];
+    if(!c) return;
+    $('postMenu').style.zIndex='130';
+    openPostMenu(c.id);
+  };
+
+  $('storyClose').before(btn);
+})();
+
 </script></body></html>
