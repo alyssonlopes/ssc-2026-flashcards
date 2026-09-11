@@ -28,6 +28,11 @@ jobs:
           python .github/scripts/patch-story-menu.py
           node --check /tmp/feed-story-menu-check.js
           node --check /tmp/profile-story-menu-check.js
+      - name: Patch Story deep links
+        run: |
+          python .github/scripts/patch-story-deep-link.py
+          node --check /tmp/feed-story-deep-link-check.js
+          node --check /tmp/profile-story-deep-link-check.js
       - name: Commit synced data and Studygram updates
         run: |
           git config user.name "github-actions[bot]"
