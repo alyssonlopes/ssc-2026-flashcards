@@ -1,0 +1,61 @@
+name: Add Story account swipe
+
+on:
+  push:
+    paths:
+      - '.github/workflows/add-story-account-swipe.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add Instagram-like swipe between Story accounts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('Instagram/index.html')
+          s = p.read_text()
+
+          old_nav = "function nextStory(){storyIndex<storyItems.length-1?(storyIndex++,story()):closeStories()}function prevStory(){if(storyIndex>0){storyIndex--;story()}}"
+          new_nav = """function currentStorySection(){return storyItems[0]?.s||Object.keys(PROFILES).find(s=>PROFILES[s]===storyProfile)}function switchStoryAccount(dir){const sections=Object.keys(PROFILES),current=currentStorySection(),i=sections.indexOf(current),j=i+dir;if(j<0)return;if(j>=sections.length){closeStories();return}const section=sections[j];storyItems=ALL.filter(c=>c.s===section);storyProfile=PROFILES[section];storyIndex=dir>0?0:Math.max(0,storyItems.length-1);memory.stories[storyProfile.username]=true;saveMemory();storyButtons();story()}function nextStory(){storyIndex<storyItems.length-1?(storyIndex++,story()):switchStoryAccount(1)}function prevStory(){storyIndex>0?(storyIndex--,story()):switchStoryAccount(-1)}"""
+          if old_nav not in s:
+              raise SystemExit('Story navigation block not found; refusing unsafe patch')
+          s = s.replace(old_nav, new_nav, 1)
+
+          marker = "$('storyPrev').onclick=prevStory;document.addEventListener('keydown'"
+          gesture = """$('storyPrev').onclick=prevStory;let storyTouchX=0,storyTouchY=0,storyTouchAt=0;const storySwipeStage=$('storyStage');storySwipeStage.addEventListener('touchstart',e=>{const t=e.changedTouches[0];storyTouchX=t.clientX;storyTouchY=t.clientY;storyTouchAt=Date.now()},{passive:true});storySwipeStage.addEventListener('touchend',e=>{const t=e.changedTouches[0],dx=t.clientX-storyTouchX,dy=t.clientY-storyTouchY,dt=Date.now()-storyTouchAt;if(dt<900&&Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.25){e.preventDefault();e.stopPropagation();dx<0?switchStoryAccount(1):switchStoryAccount(-1)}},{passive:false,capture:true});document.addEventListener('keydown'"""
+          if marker not in s:
+              raise SystemExit('Story event marker not found; refusing unsafe patch')
+          s = s.replace(marker, gesture, 1)
+          p.write_text(s)
+          PY
+
+      - name: Validate JavaScript
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s = Path('Instagram/index.html').read_text()
+          scripts = re.findall(r'<script>(.*?)</script>', s, re.S)
+          if not scripts:
+              raise SystemExit('No script found')
+          Path('/tmp/studygram.js').write_text('\n'.join(scripts))
+          assert 'function switchStoryAccount(dir)' in s
+          assert "addEventListener('touchstart'" in s
+          assert "addEventListener('touchend'" in s
+          PY
+          node --check /tmp/studygram.js
+
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Instagram/index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Add swipe navigation between Story accounts"
+          git push
