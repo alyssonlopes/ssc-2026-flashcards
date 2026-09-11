@@ -87,4 +87,48 @@ const PROFILES={"Rastreio e manejo inicial":{"username":"rastreio.sepse","name":
   $('storyClose').addEventListener('click',closeMenu);
 })();
 
+</script><script>
+/* studygram-profile-story-deep-link-v1 */
+
+(function(){
+  const storyDeepUrl=id=>`${location.origin}/ssc-2026-flashcards/Instagram/?story=${encodeURIComponent(id)}`;
+  const publicationUrl=id=>`${location.origin}/ssc-2026-flashcards/Instagram/post/?id=${encodeURIComponent(id)}`;
+  const btn=document.getElementById('storyMore');
+  const bg=document.getElementById('storyMenuBg');
+  const sheet=document.getElementById('storyMenuSheet');
+  if(!btn||!bg||!sheet) return;
+
+  const storyToast=msg=>{
+    const el=document.querySelector('.story-menu-toast');
+    if(!el) return;
+    el.textContent=msg;
+    el.classList.add('show');
+    clearTimeout(window.storyDeepToastTimer);
+    window.storyDeepToastTimer=setTimeout(()=>el.classList.remove('show'),1600);
+  };
+
+  const closeMenu=()=>bg.classList.remove('open');
+  btn.setAttribute('aria-label','Mais opções deste Story');
+  btn.onclick=e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    const c=ALL[storyIndex];
+    if(!c||!PROFILE) return;
+    const storyUrl=storyDeepUrl(c.id),postUrl=publicationUrl(c.id);
+    sheet.innerHTML=`<div class="story-menu-head"><b>${esc(PROFILE.username)}</b><span>Story · recomendação ${c.id} · ${esc(c.t)}</span></div><button class="story-menu-item primary" data-story-deep="open">Abrir publicação <span>›</span></button><button class="story-menu-item" data-story-deep="copy">Copiar link do Story <span>⧉</span></button><button class="story-menu-item" data-story-deep="image">Baixar como imagem <span>PNG</span></button><button class="story-menu-item" data-story-deep="pdf">Baixar como PDF <span>2 páginas</span></button><div class="story-menu-label">Referências e fonte</div><div class="story-menu-status">No PDF usado para este conteúdo: página ${c.p}</div><a class="story-menu-item source" href="https://doi.org/10.1097/CCM.0000000000007075" target="_blank" rel="noopener"><b>Critical Care Medicine</b><small>Surviving Sepsis Campaign 2026 · DOI 10.1097/CCM.0000000000007075</small></a><a class="story-menu-item source" href="https://doi.org/10.1007/s00134-026-08361-1" target="_blank" rel="noopener"><b>Intensive Care Medicine</b><small>Surviving Sepsis Campaign 2026 · DOI 10.1007/s00134-026-08361-1</small></a><button class="story-menu-item story-menu-cancel" data-story-deep="cancel">Cancelar</button>`;
+    bg.classList.add('open');
+    sheet.querySelectorAll('[data-story-deep]').forEach(el=>el.onclick=async()=>{
+      const action=el.dataset.storyDeep;
+      if(action==='open') location.href=postUrl;
+      if(action==='copy'){
+        try{await navigator.clipboard.writeText(storyUrl);storyToast('Link do Story copiado')}catch(_){storyToast('Não foi possível copiar o link')}
+        closeMenu();
+      }
+      if(action==='image') location.href=postUrl+'&download=image';
+      if(action==='pdf') location.href=postUrl+'&download=pdf';
+      if(action==='cancel') closeMenu();
+    });
+  };
+})();
+
 </script></body></html>
