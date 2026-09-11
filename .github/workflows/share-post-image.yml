@@ -1,0 +1,129 @@
+name: Share Studygram post with image
+
+on:
+  push:
+    paths:
+      - '.github/workflows/share-post-image.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add image sharing to feed and post page
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def inject(path, marker, script):
+              p = Path(path)
+              s = p.read_text()
+              if marker in s:
+                  return False
+              if '</body>' not in s:
+                  raise SystemExit(f'</body> not found in {path}')
+              s = s.replace('</body>', f'<script>\n/* {marker} */\n{script}\n</script></body>', 1)
+              p.write_text(s)
+              return True
+
+          home_script = r'''
+async function studygramShareImageFile(c,p){
+  const pair=exportSlides(c,p), out=document.createElement('canvas');
+  out.width=1080; out.height=2160;
+  const ctx=out.getContext('2d');
+  ctx.drawImage(pair[0],0,0); ctx.drawImage(pair[1],0,1080);
+  const blob=await canvasBlob(out,'image/png',.95);
+  return new File([blob],`ssc-2026-recomendacao-${c.id}.png`,{type:'image/png'});
+}
+share=async function(id){
+  const c=ALL.find(x=>String(x.id)===String(id));
+  if(!c)return;
+  const p=profileFor(c), url=postUrl(id), text=`${p.username} — SSC 2026\n${c.t}`;
+  try{
+    const file=await studygramShareImageFile(c,p);
+    const payload={title:c.t,text,url,files:[file]};
+    if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+      await navigator.share(payload);
+      return;
+    }
+    if(navigator.share){
+      await navigator.share({title:c.t,text,url});
+      return;
+    }
+    await navigator.clipboard.writeText(`${text}\n\n${url}`);
+    toast('Link copiado');
+  }catch(e){
+    if(e && e.name==='AbortError')return;
+    try{
+      if(navigator.share){await navigator.share({title:c.t,text,url});return}
+      await navigator.clipboard.writeText(url);toast('Link copiado');
+    }catch(_){}
+  }
+};
+'''
+
+          post_script = r'''
+async function studygramCurrentPostShareFile(){
+  const pair=slides(), out=document.createElement('canvas');
+  out.width=1080; out.height=2160;
+  const ctx=out.getContext('2d');
+  ctx.drawImage(pair[0],0,0); ctx.drawImage(pair[1],0,1080);
+  const blob=await new Promise(resolve=>out.toBlob(resolve,'image/png',.95));
+  return new File([blob],`ssc-2026-recomendacao-${CARD.id}.png`,{type:'image/png'});
+}
+share=async function(){
+  if(!CARD||!PROFILE)return;
+  const url=location.href, text=`${PROFILE.username} — SSC 2026\n${CARD.t}`;
+  try{
+    const file=await studygramCurrentPostShareFile();
+    const payload={title:CARD.t,text,url,files:[file]};
+    if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+      await navigator.share(payload);
+      return;
+    }
+    if(navigator.share){
+      await navigator.share({title:CARD.t,text,url});
+      return;
+    }
+    await navigator.clipboard.writeText(`${text}\n\n${url}`);
+    toast('Link copiado');
+  }catch(e){
+    if(e && e.name==='AbortError')return;
+    try{
+      if(navigator.share){await navigator.share({title:CARD.t,text,url});return}
+      await navigator.clipboard.writeText(url);toast('Link copiado');
+    }catch(_){}
+  }
+};
+'''
+
+          changed = False
+          changed |= inject('Instagram/index.html','studygram-share-image-v1',home_script)
+          changed |= inject('Instagram/post/index.html','studygram-share-image-v1',post_script)
+          if not changed:
+              print('Already patched')
+          PY
+      - name: Validate inline JavaScript syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          for src,out in [('Instagram/index.html','/tmp/feed.js'),('Instagram/post/index.html','/tmp/post.js')]:
+              s=Path(src).read_text()
+              scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',s,re.S)
+              Path(out).write_text('\n'.join(scripts))
+          PY
+          node --check /tmp/feed.js
+          node --check /tmp/post.js
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Instagram/index.html Instagram/post/index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Share Studygram posts with generated image"
+          git push
