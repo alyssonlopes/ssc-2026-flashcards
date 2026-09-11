@@ -1,0 +1,40 @@
+name: Fix mobile story thumbnails
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-story-thumbnails.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch story thumbnail CSS
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('Instagram/index.html')
+          s = p.read_text()
+          old1 = '.story-ring{width:66px;height:66px;'
+          new1 = '.story-ring{display:block;width:66px;height:66px;'
+          old2 = '.story-ring>span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:var(--bg);border:2px solid var(--bg);font-weight:800;font-size:16px}'
+          new2 = '.story-ring>span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:linear-gradient(145deg,#202020,#050505);border:2px solid var(--bg);font-weight:800;font-size:16px;color:#fff}'
+          if old1 not in s:
+              raise SystemExit('story-ring selector not found')
+          if old2 not in s:
+              raise SystemExit('story-ring inner selector not found')
+          s = s.replace(old1, new1, 1).replace(old2, new2, 1)
+          p.write_text(s)
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Instagram/index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix mobile story thumbnails"
+          git push
