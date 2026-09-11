@@ -1,0 +1,46 @@
+name: Randomize Studygram home feed
+
+on:
+  push:
+    paths:
+      - '.github/workflows/randomize-studygram-home.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Randomize homepage on every visit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('Instagram/index.html')
+          s = p.read_text()
+
+          old_shuffle = "function shuffle(){for(let i=feedOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[feedOrder[i],feedOrder[j]]=[feedOrder[j],feedOrder[i]]}onlySaved=false;render();window.scrollTo({top:0,behavior:'smooth'});toast('Feed embaralhado')}"
+          new_shuffle = "function randomizeFeed(){for(let i=feedOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[feedOrder[i],feedOrder[j]]=[feedOrder[j],feedOrder[i]]}}function shuffle(){randomizeFeed();onlySaved=false;render();window.scrollTo({top:0,behavior:'smooth'});toast('Feed embaralhado')}"
+          old_init = "feedOrder=[...ALL];$('sideAvatar')"
+          new_init = "feedOrder=[...ALL];randomizeFeed();$('sideAvatar')"
+          old_home = "$('homeBtn').onclick=()=>{onlySaved=false;render();window.scrollTo({top:0,behavior:'smooth'})}"
+          new_home = "$('homeBtn').onclick=()=>{onlySaved=false;randomizeFeed();render();window.scrollTo({top:0,behavior:'smooth'})}"
+
+          for old in (old_shuffle, old_init, old_home):
+              if old not in s:
+                  raise SystemExit(f'Pattern not found: {old[:70]}')
+
+          s = s.replace(old_shuffle, new_shuffle, 1)
+          s = s.replace(old_init, new_init, 1)
+          s = s.replace(old_home, new_home, 1)
+          p.write_text(s)
+          PY
+      - name: Commit random feed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Instagram/index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Randomize Studygram homepage feed"
+          git push
