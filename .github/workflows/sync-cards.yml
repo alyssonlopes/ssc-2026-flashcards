@@ -18,14 +18,19 @@ jobs:
           for i in 1 2 3 4 5; do
             curl -fsSL "https://raw.githubusercontent.com/alyssonlopes/contador/sepsis-flashcards/cards-${i}.json" -o "cards-${i}.json"
           done
-      - name: Commit synced data
+      - name: Patch Studygram image sharing
+        run: |
+          python .github/scripts/patch-share-image.py
+          node --check /tmp/feed-share-check.js
+          node --check /tmp/post-share-check.js
+      - name: Commit synced data and Studygram updates
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add cards-*.json
+          git add cards-*.json Instagram/index.html Instagram/post/index.html
           if git diff --cached --quiet; then
             echo "No changes"
           else
-            git commit -m "Add SSC 2026 flashcard data"
+            git commit -m "Share Studygram posts with generated image"
             git push
           fi
