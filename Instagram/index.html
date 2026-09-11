@@ -12,4 +12,40 @@ async function copyPostLink(id){try{await navigator.clipboard.writeText(postUrl(
 function closePostMenu(){$('postMenu').classList.remove('open')}
 function openPostMenu(id){const c=ALL.find(x=>String(x.id)===String(id));if(!c)return;const p=profileFor(c);$('postMenuSheet').innerHTML=`<div class="post-menu-head"><b>${esc(p.username)}</b><span>Recomendação ${c.id} · ${esc(c.t)}</span></div><button class="post-menu-item primary" data-mi="open">Abrir publicação <span>›</span></button><button class="post-menu-item" data-mi="copy">Copiar link <span>⧉</span></button><button class="post-menu-item" data-mi="image">Baixar como imagem <span>PNG</span></button><button class="post-menu-item" data-mi="pdf">Baixar como PDF <span>2 páginas</span></button><div class="post-menu-label">Referências e fonte</div><div class="post-menu-status">No PDF usado para este conteúdo: página ${c.p}</div><a class="post-menu-item source" href="${SOURCE_CCM}" target="_blank" rel="noopener"><b>Critical Care Medicine</b><small>Surviving Sepsis Campaign 2026 · DOI 10.1097/CCM.0000000000007075</small></a><a class="post-menu-item source" href="${SOURCE_ICM}" target="_blank" rel="noopener"><b>Intensive Care Medicine</b><small>Surviving Sepsis Campaign 2026 · DOI 10.1007/s00134-026-08361-1</small></a><button class="post-menu-item post-menu-cancel" data-mi="cancel">Cancelar</button>`;$('postMenu').classList.add('open');$('postMenuSheet').querySelectorAll('[data-mi]').forEach(b=>b.onclick=async()=>{const a=b.dataset.mi;if(a==='open')location.href=postUrl(id);if(a==='copy'){await copyPostLink(id);closePostMenu()}if(a==='image'){closePostMenu();location.href=postUrl(id)+'&download=image'}if(a==='pdf'){closePostMenu();location.href=postUrl(id)+'&download=pdf'}if(a==='cancel')closePostMenu()})}
 function openStories(section){storyItems=ALL.filter(c=>c.s===section);storyProfile=PROFILES[section];storyIndex=0;memory.stories[storyProfile.username]=true;saveMemory();storyButtons();$('storyViewer').classList.add('open');document.body.style.overflow='hidden';story()}function story(){const c=storyItems[storyIndex],p=storyProfile;$('storyStage').style.setProperty('--story-accent',p.accent);$('storyStage').style.setProperty('--story-accent2',p.accent2);$('storyAvatar').innerHTML=img(p);$('storyUsername').innerHTML=`<b>${esc(p.username)}</b>`;$('storyUsername').href=profileHref(p);$('storySection').textContent=p.name;$('storyTopic').textContent=`Recomendação ${c.id} • ${c.g||'SSC 2026'}`;$('storyTitle').textContent=c.t;$('storyAnswer').innerHTML=rich(c.a);$('storyFoot').textContent=`PDF • página ${c.p}`;$('storyCounter').textContent=`${storyIndex+1}/${storyItems.length}`;$('storyProgress').innerHTML=storyItems.map((_,i)=>`<span class="story-seg ${i<storyIndex?'done':i===storyIndex?'active':''}"></span>`).join('');memory.read[c.id]=true;saveMemory();stats()}function closeStories(){$('storyViewer').classList.remove('open');document.body.style.overflow=''}function currentStorySection(){return storyItems[0]?.s||Object.keys(PROFILES).find(s=>PROFILES[s]===storyProfile)}function switchStoryAccount(dir){const sections=Object.keys(PROFILES),current=currentStorySection(),i=sections.indexOf(current),j=i+dir;if(j<0)return;if(j>=sections.length){closeStories();return}const section=sections[j];storyItems=ALL.filter(c=>c.s===section);storyProfile=PROFILES[section];storyIndex=dir>0?0:Math.max(0,storyItems.length-1);memory.stories[storyProfile.username]=true;saveMemory();storyButtons();story()}function nextStory(){storyIndex<storyItems.length-1?(storyIndex++,story()):switchStoryAccount(1)}function prevStory(){storyIndex>0?(storyIndex--,story()):switchStoryAccount(-1)}function randomizeFeed(){for(let i=feedOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[feedOrder[i],feedOrder[j]]=[feedOrder[j],feedOrder[i]]}}function shuffle(){randomizeFeed();onlySaved=false;render();window.scrollTo({top:0,behavior:'smooth'});toast('Feed embaralhado')}async function init(){try{const parts=await Promise.all([1,2,3,4,5].map(i=>fetch(`../cards-${i}.json`).then(r=>r.json())));ALL=parts.flat();if(ALL.length!==129)throw Error('cards');feedOrder=[...ALL];randomizeFeed();$('sideAvatar').innerHTML=img(PROFILES[Object.keys(PROFILES)[0]]);$('loading').remove();storyButtons();render();stats()}catch(e){$('loading').textContent='Não foi possível carregar os 129 conteúdos.';console.error(e)}}$('postMenu').onclick=e=>{if(e.target===$('postMenu'))closePostMenu()};$('homeBtn').onclick=()=>{onlySaved=false;randomizeFeed();render();window.scrollTo({top:0,behavior:'smooth'})};$('shuffleBtn').onclick=shuffle;$('savedBtn').onclick=()=>{onlySaved=!onlySaved;render();window.scrollTo({top:0,behavior:'smooth'});toast(onlySaved?'Mostrando salvos':'Mostrando todos')};$('storyClose').onclick=closeStories;$('storyNext').onclick=nextStory;$('storyPrev').onclick=prevStory;let storyTouchX=0,storyTouchY=0,storyTouchAt=0;const storySwipeStage=$('storyStage');storySwipeStage.addEventListener('touchstart',e=>{const t=e.changedTouches[0];storyTouchX=t.clientX;storyTouchY=t.clientY;storyTouchAt=Date.now()},{passive:true});storySwipeStage.addEventListener('touchend',e=>{const t=e.changedTouches[0],dx=t.clientX-storyTouchX,dy=t.clientY-storyTouchY,dt=Date.now()-storyTouchAt;if(dt<900&&Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.25){e.preventDefault();e.stopPropagation();dx<0?switchStoryAccount(1):switchStoryAccount(-1)}},{passive:false,capture:true});document.addEventListener('keydown',e=>{if(!$('storyViewer').classList.contains('open'))return;if(e.key==='Escape')closeStories();if(e.key==='ArrowRight')nextStory();if(e.key==='ArrowLeft')prevStory()});init();
+</script><script>
+/* studygram-share-image-v1 */
+
+async function studygramShareImageFile(c,p){
+  const pair=exportSlides(c,p), out=document.createElement('canvas');
+  out.width=1080; out.height=2160;
+  const ctx=out.getContext('2d');
+  ctx.drawImage(pair[0],0,0); ctx.drawImage(pair[1],0,1080);
+  const blob=await canvasBlob(out,'image/png',.95);
+  return new File([blob],`ssc-2026-recomendacao-${c.id}.png`,{type:'image/png'});
+}
+share=async function(id){
+  const c=ALL.find(x=>String(x.id)===String(id));
+  if(!c)return;
+  const p=profileFor(c), url=postUrl(id), text=`${p.username} — SSC 2026\n${c.t}`;
+  try{
+    const file=await studygramShareImageFile(c,p);
+    if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+      await navigator.share({title:c.t,text,url,files:[file]});
+      return;
+    }
+    if(navigator.share){
+      await navigator.share({title:c.t,text,url});
+      return;
+    }
+    await navigator.clipboard.writeText(`${text}\n\n${url}`);
+    toast('Link copiado');
+  }catch(e){
+    if(e && e.name==='AbortError')return;
+    try{
+      if(navigator.share){await navigator.share({title:c.t,text,url});return}
+      await navigator.clipboard.writeText(url);toast('Link copiado');
+    }catch(_){}
+  }
+};
+
 </script></body></html>
