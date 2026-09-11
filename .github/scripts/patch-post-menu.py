@@ -28,12 +28,12 @@ if "openPostMenu(b.dataset.menu)" not in s:
         raise SystemExit('attach marker not found')
     s = s.replace(attach_marker, attach_marker + "document.querySelectorAll('[data-menu]').forEach(b=>b.onclick=e=>{e.stopPropagation();openPostMenu(b.dataset.menu)});", 1)
 
-share_old = "async function share(id){const c=ALL.find(x=>String(x.id)===String(id)),p=profileFor(c),text=`${p.username} — SSC 2026\\n${c.t}\\n\\n${c.a.replace(/\\*\\*/g,'')}`;try{if(navigator.share)await navigator.share({title:c.t,text});else await navigator.clipboard.writeText(text),toast('Conteúdo copiado')}catch(e){}}"
 share_new = "async function share(id){const c=ALL.find(x=>String(x.id)===String(id)),p=profileFor(c),text=`${p.username} — SSC 2026\\n${c.t}\\n\\n${c.a.replace(/\\*\\*/g,'')}`,url=postUrl(id);try{if(navigator.share)await navigator.share({title:c.t,text,url});else await navigator.clipboard.writeText(`${text}\\n\\n${url}`),toast('Conteúdo e link copiados')}catch(e){}}"
-if share_old in s:
-    s = s.replace(share_old, share_new, 1)
-elif 'url=postUrl(id)' not in s:
-    raise SystemExit('share marker not found')
+if 'url=postUrl(id)' not in s:
+    pattern = r"async function share\(id\)\{.*?\}\}function openStories\(section\)"
+    s, n = re.subn(pattern, lambda m: share_new + 'function openStories(section)', s, count=1, flags=re.S)
+    if n != 1:
+        raise SystemExit('share marker not found')
 
 helpers = r'''
 const SOURCE_CCM='https://doi.org/10.1097/CCM.0000000000007075',SOURCE_ICM='https://doi.org/10.1007/s00134-026-08361-1';
