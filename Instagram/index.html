@@ -91,4 +91,28 @@ share=function(id){
   studygramDownloadShareFallback(file,url);
 };
 
+</script><script>
+/* studygram-share-text-v3 */
+
+share=async function(id){
+  const c=ALL.find(x=>String(x.id)===String(id));
+  if(!c)return;
+  const p=profileFor(c), url=postUrl(id);
+  const text=`${p.username} — SSC 2026\n${c.t}`;
+  try{
+    if(navigator.share){
+      await navigator.share({title:c.t,text,url});
+      return;
+    }
+    await navigator.clipboard.writeText(`${text}\n\n${url}`);
+    toast('Texto e link copiados');
+  }catch(e){
+    if(e&&e.name==='AbortError')return;
+    try{
+      await navigator.clipboard.writeText(`${text}\n\n${url}`);
+      toast('Texto e link copiados');
+    }catch(_){}
+  }
+};
+
 </script></body></html>
